@@ -1,8 +1,6 @@
 import sys
 import re
 
-import stem.process
-
 from PySide import QtGui, QtCore
 
 class Communicate(QtCore.QObject):
@@ -36,7 +34,7 @@ class Cipollini(QtGui.QMainWindow):
 class MainWidget(QtGui.QWidget):
     def __init__(self, parent):
         self.comms = Communicate()
-        self.tor = None
+        self.tor_process = None
         self.tor_start = False
 
         super(MainWidget, self).__init__()
@@ -48,6 +46,7 @@ class MainWidget(QtGui.QWidget):
 
         self.pbar = QtGui.QProgressBar(self)
         self.pbar.resize(self.pbar.sizeHint())
+        self.pbar.setTextVisible(True)
 
         # button to start/stop Tor
         main_btn = QtGui.QPushButton('Start Tor', self)
@@ -66,13 +65,13 @@ class MainWidget(QtGui.QWidget):
         hbox.addWidget(quit_btn)
         self.setLayout(hbox)
 
-    def update_progressbar(self, msg):
-        print msg
+    def update_progressbar(self):
+        msg = self.tor_process.readAll()
         bootstrap_line = re.compile("Bootstrapped ([0-9]+)%: ")
         bootstrap_match = bootstrap_line.search(msg)
         if bootstrap_match:
-            print int(bootstrap_match.groups()[0])
-            self.pbar.setValue(int(bootstrap_match.groups()[0]))
+            progress = int(bootstrap_match.groups()[0])
+            self.pbar.setValue(progress)
 
     def main_btn_clicked(self):
         main_btn = self.sender()
@@ -81,17 +80,16 @@ class MainWidget(QtGui.QWidget):
             self.tor_start = True
             main_btn.setText("Stop Tor")
             self.comms.status_msg.emit("Started Tor")
-            try:
-                self.tor = stem.process.launch_tor(completion_percent=0,
-                                                   init_msg_handler=self.update_progressbar)
-            except:
-                self.tor.kill()
+            self.tor_process = QtCore.QProcess()
+            self.tor_process.start("tor")
+            self.tor_process.readyReadStandardOutput.connect(self.update_progressbar)
         else:
             # stop Tor
-            self.tor.kill()
-            self.tor_start = False
-            main_btn.setText("Stop Tor")
+            self.tor_process.kill()
             self.comms.status_msg.emit("Stopped Tor")
+            self.tor_start = False
+            self.pbar.setValue(0)
+            main_btn.setText("Start Tor")
 
 def main():
     app = QtGui.QApplication(sys.argv)

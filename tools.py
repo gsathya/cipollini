@@ -2,9 +2,12 @@ import re
 
 from PySide import QtCore
 
-def launch_tor():
-    tor_cmd = "tor"
-    args = []
+def launch_tor(tor_cmd="tor", args=[]):
+    """
+    Launches a tor process.
+
+    :returns: **QtCore.QProcess** QProcess instance
+    """
     
     tor_process = QtCore.QProcess()
     tor_process.start(tor_cmd, args)
@@ -19,6 +22,7 @@ def parse_bootstrap_msg(msg):
 
     :returns: **int** numerical value of % bootstrapping done
     """
+
     bootstrap_line = re.compile("Bootstrapped ([0-9]+)%: ")
     bootstrap_match = bootstrap_line.search(msg)
     if bootstrap_match:

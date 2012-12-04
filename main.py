@@ -1,6 +1,8 @@
 import sys
 import re
 
+import tools
+
 from PySide import QtGui, QtCore
 
 class Communicate(QtCore.QObject):
@@ -19,7 +21,7 @@ class Cipollini(QtGui.QMainWindow):
         self.main_widget.comms.status_msg.connect(self.status_bar.showMessage)
 
         # fix size and position
-        self.setGeometry(300, 300, 250, 150)
+        self.setGeometry(500, 500, 350, 250)
         self.center()
 
         self.setWindowTitle('Cipollini')
@@ -38,9 +40,9 @@ class MainWidget(QtGui.QWidget):
         self.tor_start = False
 
         super(MainWidget, self).__init__()
-        self.initUI()
+        self.init()
 
-    def initUI(self):
+    def init(self):
         # initialise tool tips
         QtGui.QToolTip.setFont(QtGui.QFont('SansSerif', 10))
 
@@ -67,33 +69,37 @@ class MainWidget(QtGui.QWidget):
 
     def update_progressbar(self):
         msg = self.tor_process.readAll()
-        bootstrap_line = re.compile("Bootstrapped ([0-9]+)%: ")
-        bootstrap_match = bootstrap_line.search(msg)
-        if bootstrap_match:
-            progress = int(bootstrap_match.groups()[0])
+        progress = tools.parse_bootstrap_msg(msg)
+        if progress:
             self.pbar.setValue(progress)
+
+    def start_tor(self, main_btn):
+        self.tor_start = True
+        main_btn.setText("Stop Tor")
+        self.comms.status_msg.emit("Started Tor")
+        self.tor_process = tools.launch_tor()
+        self.tor_process.readyReadStandardOutput.connect(self.update_progressbar)
+
+    def stop_tor(self, main_btn):
+        # stop Tor
+        self.tor_process.kill()
+        self.comms.status_msg.emit("Stopped Tor")
+        self.tor_start = False
+        self.pbar.setValue(0)
+        main_btn.setText("Start Tor")
 
     def main_btn_clicked(self):
         main_btn = self.sender()
         if not self.tor_start:
             # start Tor
-            self.tor_start = True
-            main_btn.setText("Stop Tor")
-            self.comms.status_msg.emit("Started Tor")
-            self.tor_process = QtCore.QProcess()
-            self.tor_process.start("tor")
-            self.tor_process.readyReadStandardOutput.connect(self.update_progressbar)
+            self.start_tor(main_btn)
         else:
             # stop Tor
-            self.tor_process.kill()
-            self.comms.status_msg.emit("Stopped Tor")
-            self.tor_start = False
-            self.pbar.setValue(0)
-            main_btn.setText("Start Tor")
+            self.stop_tor(main_btn)
 
 def main():
     app = QtGui.QApplication(sys.argv)
-    ex = Cipollini()
+    cipollini = Cipollini()
     sys.exit(app.exec_())
 
 if __name__ == '__main__':

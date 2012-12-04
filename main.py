@@ -75,17 +75,17 @@ class MainWidget(QtGui.QWidget):
 
     def start_tor(self, main_btn):
         self.tor_start = True
-        main_btn.setText("Stop Tor")
-        self.comms.status_msg.emit("Started Tor")
         self.tor_process = tools.launch_tor()
         self.tor_process.readyReadStandardOutput.connect(self.update_progressbar)
+        main_btn.setText("Stop Tor")
+        self.comms.status_msg.emit("Started Tor")
 
     def stop_tor(self, main_btn):
         # stop Tor
         self.tor_process.kill()
-        self.comms.status_msg.emit("Stopped Tor")
         self.tor_start = False
         self.pbar.setValue(0)
+        self.comms.status_msg.emit("Stopped Tor")
         main_btn.setText("Start Tor")
 
     def main_btn_clicked(self):

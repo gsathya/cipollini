@@ -62,10 +62,15 @@ class MainWidget(QtGui.QWidget):
 
         # initialise a horizontal box layout
         hbox = QtGui.QHBoxLayout()
-        hbox.addWidget(self.pbar)
         hbox.addWidget(main_btn)
         hbox.addWidget(quit_btn)
-        self.setLayout(hbox)
+
+        # place them all vertically
+        vbox = QtGui.QVBoxLayout()
+        vbox.addWidget(self.pbar)
+        vbox.addLayout(hbox)
+
+        self.setLayout(vbox)
 
     def update_progressbar(self):
         msg = self.tor_process.readAll()

@@ -27,8 +27,9 @@ class Cipollini(QtGui.QMainWindow):
         self.setGeometry(500, 500, 350, 250)
         self.center()
 
-        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create('Cleanlooks'))
+        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create('CDE'))
         self.setWindowTitle('Cipollini')
+        self.draw_bg()
         self.show()
 
     def center(self):
@@ -36,6 +37,12 @@ class Cipollini(QtGui.QMainWindow):
         size =  self.geometry()
         self.move((screen.width()-size.width())/2,
                 (screen.height()-size.height())/2)
+
+    def draw_bg(self):
+        bg = QtGui.QImage('./images/bg.png')
+        palette = QtGui.QPalette()
+        palette.setBrush(QtGui.QPalette.Background, bg)
+        self.setPalette(palette)
 
 class MainWidget(QtGui.QWidget):
     def __init__(self, parent):

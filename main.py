@@ -6,7 +6,10 @@ import tools
 from PySide import QtGui, QtCore
 
 class Communicate(QtCore.QObject):
+    # msg displayed in the status bar
     status_msg = QtCore.Signal(str)
+    # output from tor process
+    bootstrap_msg = QtCore.Signal(str)
 
 class Cipollini(QtGui.QMainWindow):
     def __init__(self):
@@ -18,12 +21,12 @@ class Cipollini(QtGui.QMainWindow):
 
         # intialise status bar
         self.status_bar = self.statusBar()
-        self.main_widget.comms.status_msg.connect(self.status_bar.showMessage)
-
+        self.main_widget.btn_frame.comms.status_msg.connect(self.status_bar.showMessage)
         # fix size and position
         self.setGeometry(500, 500, 350, 250)
         self.center()
 
+        QtGui.QApplication.setStyle(QtGui.QStyleFactory.create('Cleanlooks'))
         self.setWindowTitle('Cipollini')
         self.show()
 
@@ -35,10 +38,6 @@ class Cipollini(QtGui.QMainWindow):
 
 class MainWidget(QtGui.QWidget):
     def __init__(self, parent):
-        self.comms = Communicate()
-        self.tor_process = None
-        self.tor_start = False
-
         super(MainWidget, self).__init__()
         self.init()
 
@@ -46,10 +45,53 @@ class MainWidget(QtGui.QWidget):
         # initialise tool tips
         QtGui.QToolTip.setFont(QtGui.QFont('SansSerif', 10))
 
+        self.status_frame = StatusFrame(self)
+        self.btn_frame = BtnFrame(self)
+        self.btn_frame.comms.bootstrap_msg.connect(self.status_frame.update_progressbar)
+
+        # place them all vertically
+        vbox = QtGui.QVBoxLayout()
+        vbox.addWidget(self.status_frame)
+        vbox.addWidget(self.btn_frame)
+
+        self.setLayout(vbox)
+
+class StatusFrame(QtGui.QFrame):
+    def __init__(self, parent):
+        super(StatusFrame, self).__init__()
+        self.init()
+
+    def init(self):
+        # progress bar
         self.pbar = QtGui.QProgressBar(self)
         self.pbar.resize(self.pbar.sizeHint())
+        self.pbar.setValue(0)
         self.pbar.setTextVisible(True)
 
+        self.setFrameStyle(QtGui.QFrame.StyledPanel)
+
+        # place them all vertically
+        vbox = QtGui.QVBoxLayout()
+        vbox.addWidget(self.pbar)
+
+        self.setLayout(vbox)
+
+    @QtCore.Slot(str)
+    def update_progressbar(self, msg):
+        progress = tools.parse_bootstrap_msg(msg)
+        if progress:
+            self.pbar.setValue(progress)
+
+class BtnFrame(QtGui.QFrame):
+    def __init__(self, parent):
+        self.tor_process = None
+        self.tor_start = False
+        self.comms = Communicate()
+
+        super(BtnFrame, self).__init__()
+        self.init()
+
+    def init(self):
         # button to start/stop Tor
         main_btn = QtGui.QPushButton('Start Tor', self)
         main_btn.clicked.connect(self.main_btn_clicked)
@@ -65,41 +107,34 @@ class MainWidget(QtGui.QWidget):
         hbox.addWidget(main_btn)
         hbox.addWidget(quit_btn)
 
-        # place them all vertically
-        vbox = QtGui.QVBoxLayout()
-        vbox.addWidget(self.pbar)
-        vbox.addLayout(hbox)
+        self.setLayout(hbox)
+        self.setFrameStyle(QtGui.QFrame.StyledPanel)
 
-        self.setLayout(vbox)
-
-    def update_progressbar(self):
+    def read_tor_msg(self):
         msg = self.tor_process.readAll()
-        progress = tools.parse_bootstrap_msg(msg)
-        if progress:
-            self.pbar.setValue(progress)
+        self.comms.bootstrap_msg.emit(str(msg))
+        if "100%" in str(msg):
+            self.comms.status_msg.emit("Started Tor")
 
     def start_tor(self, main_btn):
         self.tor_start = True
         self.tor_process = tools.launch_tor()
-        self.tor_process.readyReadStandardOutput.connect(self.update_progressbar)
+        self.tor_process.readyReadStandardOutput.connect(self.read_tor_msg)
         main_btn.setText("Stop Tor")
-        self.comms.status_msg.emit("Started Tor")
+        self.comms.status_msg.emit("Bootstrapping Tor")
 
     def stop_tor(self, main_btn):
         # stop Tor
         self.tor_process.kill()
         self.tor_start = False
-        self.pbar.setValue(0)
         self.comms.status_msg.emit("Stopped Tor")
         main_btn.setText("Start Tor")
 
     def main_btn_clicked(self):
         main_btn = self.sender()
         if not self.tor_start:
-            # start Tor
             self.start_tor(main_btn)
         else:
-            # stop Tor
             self.stop_tor(main_btn)
 
 def main():

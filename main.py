@@ -2,6 +2,7 @@ import sys
 import re
 
 import tools
+from log import LogViewer
 
 from PySide import QtGui, QtCore
 
@@ -163,30 +164,6 @@ class BtnFrame(QtGui.QFrame):
         else:
             # raise Exception
             pass
-
-class LogViewer(QtGui.QMainWindow):
-    def __init__(self, parent):
-        super(LogViewer, self).__init__()
-        self.init()
-
-    def init(self):
-        font = QtGui.QFont()
-        font.setFamily("Courier")
-        font.setFixedPitch(True)
-        font.setPointSize(12)
-
-        self.viewer = QtGui.QPlainTextEdit()
-        self.viewer.setFont(font)
-        self.viewer.setReadOnly(True)
-        self.viewer.show()
-
-        self.setCentralWidget(self.viewer)
-        self.setWindowTitle('Logs')
-        self.setGeometry(100, 300, 700, 500)
-
-    @QtCore.Slot(str)
-    def update_log(self, log):
-        self.viewer.appendPlainText(log)
 
 def main():
     app = QtGui.QApplication(sys.argv)

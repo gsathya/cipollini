@@ -22,6 +22,7 @@ class Cipollini(QtGui.QMainWindow):
         # intialise status bar
         self.status_bar = self.statusBar()
         self.main_widget.btn_frame.comms.status_msg.connect(self.status_bar.showMessage)
+
         # fix size and position
         self.setGeometry(500, 500, 350, 250)
         self.center()
@@ -78,9 +79,12 @@ class StatusFrame(QtGui.QFrame):
 
     @QtCore.Slot(str)
     def update_progressbar(self, msg):
-        progress = tools.parse_bootstrap_msg(msg)
-        if progress:
-            self.pbar.setValue(progress)
+        if msg == "Stopped Tor":
+            self.pbar.setValue(0)
+        else:
+            progress = tools.parse_bootstrap_msg(msg)
+            if progress:
+                self.pbar.setValue(progress)
 
 class BtnFrame(QtGui.QFrame):
     def __init__(self, parent):
@@ -128,6 +132,7 @@ class BtnFrame(QtGui.QFrame):
         self.tor_process.kill()
         self.tor_start = False
         self.comms.status_msg.emit("Stopped Tor")
+        self.comms.bootstrap_msg.emit("Stopped Tor")
         main_btn.setText("Start Tor")
 
     def main_btn_clicked(self):

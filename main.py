@@ -97,6 +97,7 @@ class BtnFrame(QtGui.QFrame):
     def __init__(self, parent):
         self.tor_process = None
         self.tor_start = False
+        self.tor_logs = []
         self.comms = Communicate()
 
         super(BtnFrame, self).__init__()
@@ -108,6 +109,11 @@ class BtnFrame(QtGui.QFrame):
         main_btn.clicked.connect(self.main_btn_clicked)
         main_btn.resize(main_btn.sizeHint())
 
+        # show logs
+        log_btn = QtGui.QPushButton('Show Logs', self)
+        log_btn.clicked.connect(self.show_logs)
+        log_btn.resize(log_btn.sizeHint())
+
         # button to kill cipollini
         quit_btn = QtGui.QPushButton('Quit', self)
         quit_btn.clicked.connect(QtCore.QCoreApplication.instance().quit)
@@ -116,15 +122,17 @@ class BtnFrame(QtGui.QFrame):
         # initialise a horizontal box layout
         hbox = QtGui.QHBoxLayout()
         hbox.addWidget(main_btn)
+        hbox.addWidget(log_btn)
         hbox.addWidget(quit_btn)
 
         self.setLayout(hbox)
         self.setFrameStyle(QtGui.QFrame.StyledPanel)
 
     def read_tor_msg(self):
-        msg = self.tor_process.readAll()
-        self.comms.bootstrap_msg.emit(str(msg))
-        if "100%" in str(msg):
+        msg = str(self.tor_process.readAll())
+        self.tor_logs.append(msg.strip())
+        self.comms.bootstrap_msg.emit(msg)
+        if "100%" in msg:
             self.comms.status_msg.emit("Started Tor")
 
     def start_tor(self, main_btn):
@@ -148,6 +156,36 @@ class BtnFrame(QtGui.QFrame):
             self.start_tor(main_btn)
         else:
             self.stop_tor(main_btn)
+
+    def show_logs(self):
+        # create log class
+        self.log_viewer = LogViewer(self, self.tor_logs)
+
+        # hacky, fix it
+        #self.log_viewer.tor_logs = self.tor_logs
+
+class LogViewer(QtGui.QMainWindow):
+    def __init__(self, parent, tor_logs=[]):
+        super(LogViewer, self).__init__()
+        self.tor_logs = tor_logs
+        self.init()
+
+    def init(self):
+        font = QtGui.QFont()
+        font.setFamily("Courier")
+        font.setFixedPitch(True)
+        font.setPointSize(12)
+
+        self.viewer = QtGui.QPlainTextEdit()
+        self.viewer.setFont(font)
+        self.viewer.setPlainText('\n'.join(self.tor_logs))
+        self.viewer.show()
+        
+        self.setCentralWidget(self.viewer)
+        self.setWindowTitle('Logs')
+        self.setGeometry(100, 300, 700, 500)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        self.show()
 
 def main():
     app = QtGui.QApplication(sys.argv)

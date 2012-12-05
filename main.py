@@ -56,6 +56,7 @@ class MainWidget(QtGui.QWidget):
         self.status_frame = StatusFrame(self)
         self.btn_frame = BtnFrame(self)
         self.btn_frame.comms.bootstrap_msg.connect(self.status_frame.update_progressbar)
+        self.btn_frame.comms.bootstrap_msg.connect(self.btn_frame.log_viewer.update_log)
 
         # place them all vertically
         vbox = QtGui.QVBoxLayout()
@@ -97,7 +98,7 @@ class BtnFrame(QtGui.QFrame):
     def __init__(self, parent):
         self.tor_process = None
         self.tor_start = False
-        self.tor_logs = []
+        self.log_viewer = LogViewer(self)
         self.comms = Communicate()
 
         super(BtnFrame, self).__init__()
@@ -130,8 +131,7 @@ class BtnFrame(QtGui.QFrame):
 
     def read_tor_msg(self):
         msg = str(self.tor_process.readAll())
-        self.tor_logs.append(msg.strip())
-        self.comms.bootstrap_msg.emit(msg)
+        self.comms.bootstrap_msg.emit(msg.strip())
         if "100%" in msg:
             self.comms.status_msg.emit("Started Tor")
 
@@ -158,16 +158,15 @@ class BtnFrame(QtGui.QFrame):
             self.stop_tor(main_btn)
 
     def show_logs(self):
-        # create log class
-        self.log_viewer = LogViewer(self, self.tor_logs)
-
-        # hacky, fix it
-        #self.log_viewer.tor_logs = self.tor_logs
+        if self.log_viewer:
+            self.log_viewer.show()
+        else:
+            # raise Exception
+            pass
 
 class LogViewer(QtGui.QMainWindow):
-    def __init__(self, parent, tor_logs=[]):
+    def __init__(self, parent):
         super(LogViewer, self).__init__()
-        self.tor_logs = tor_logs
         self.init()
 
     def init(self):
@@ -178,14 +177,16 @@ class LogViewer(QtGui.QMainWindow):
 
         self.viewer = QtGui.QPlainTextEdit()
         self.viewer.setFont(font)
-        self.viewer.setPlainText('\n'.join(self.tor_logs))
+        self.viewer.setReadOnly(True)
         self.viewer.show()
-        
+
         self.setCentralWidget(self.viewer)
         self.setWindowTitle('Logs')
         self.setGeometry(100, 300, 700, 500)
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        self.show()
+
+    @QtCore.Slot(str)
+    def update_log(self, log):
+        self.viewer.appendPlainText(log)
 
 def main():
     app = QtGui.QApplication(sys.argv)

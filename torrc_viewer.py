@@ -29,8 +29,9 @@ class TorrcViewer(QtGui.QWidget):
         self.viewer.setReadOnly(True)
 
         self.key_edit = QtGui.QLineEdit()
+        self.key_edit.setPlaceholderText('Option')
         self.val_edit = QtGui.QLineEdit()
-
+        self.val_edit.setPlaceholderText('Value')
 
         grid = QtGui.QGridLayout()
         grid.addWidget(self.key_edit, 0, 0)

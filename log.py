@@ -1,6 +1,6 @@
 from PySide import QtGui, QtCore
 
-class LogViewer(QtGui.QMainWindow):
+class LogViewer(QtGui.QWidget):
     def __init__(self, parent):
         super(LogViewer, self).__init__()
         self.init()
@@ -14,9 +14,11 @@ class LogViewer(QtGui.QMainWindow):
         self.viewer = QtGui.QPlainTextEdit()
         self.viewer.setFont(font)
         self.viewer.setReadOnly(True)
-        self.viewer.show()
 
-        self.setCentralWidget(self.viewer)
+        vbox = QtGui.QVBoxLayout()
+        vbox.addWidget(self.viewer)
+
+        self.setLayout(vbox)
         self.setWindowTitle('Logs')
         self.setGeometry(100, 300, 700, 500)
 

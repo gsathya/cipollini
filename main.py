@@ -3,6 +3,7 @@ import re
 
 import tools
 from log import LogViewer
+from torrc_viewer import TorrcViewer
 
 from PySide import QtGui, QtCore
 
@@ -98,6 +99,7 @@ class StatusFrame(QtGui.QFrame):
 class BtnFrame(QtGui.QFrame):
     def __init__(self, parent):
         self.tor_process = None
+        self.torrc_path = None
         self.tor_start = False
         self.log_viewer = LogViewer(self)
         self.comms = Communicate()
@@ -116,6 +118,11 @@ class BtnFrame(QtGui.QFrame):
         log_btn.clicked.connect(self.show_logs)
         log_btn.resize(log_btn.sizeHint())
 
+        # show torrc
+        torrc_btn = QtGui.QPushButton('Show Torrc', self)
+        torrc_btn.clicked.connect(self.show_torrc)
+        torrc_btn.resize(torrc_btn.sizeHint())
+
         # button to kill cipollini
         quit_btn = QtGui.QPushButton('Quit', self)
         quit_btn.clicked.connect(QtCore.QCoreApplication.instance().quit)
@@ -125,6 +132,7 @@ class BtnFrame(QtGui.QFrame):
         hbox = QtGui.QHBoxLayout()
         hbox.addWidget(main_btn)
         hbox.addWidget(log_btn)
+        hbox.addWidget(torrc_btn)
         hbox.addWidget(quit_btn)
 
         self.setLayout(hbox)
@@ -138,7 +146,7 @@ class BtnFrame(QtGui.QFrame):
 
     def start_tor(self, main_btn):
         self.tor_start = True
-        self.tor_process = tools.launch_tor()
+        self.tor_process, self.torrc_path = tools.launch_tor()
         self.tor_process.readyReadStandardOutput.connect(self.read_tor_msg)
         main_btn.setText("Stop Tor")
         self.comms.status_msg.emit("Bootstrapping Tor")
@@ -159,11 +167,18 @@ class BtnFrame(QtGui.QFrame):
             self.stop_tor(main_btn)
 
     def show_logs(self):
+        #XXX: maybe create log_viewer only
+        #     after log_btn is clicked?
+        #     memory wastage?
         if self.log_viewer:
             self.log_viewer.show()
         else:
             # raise Exception
             pass
+
+    def show_torrc(self):
+        self.torrc_viewer = TorrcViewer(self.torrc_path)
+        self.torrc_viewer.show()
 
 def main():
     app = QtGui.QApplication(sys.argv)

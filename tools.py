@@ -29,7 +29,7 @@ def launch_tor(tor_cmd="tor", args=[], torrc_path=None):
     tor_process = QtCore.QProcess()
     tor_process.start(tor_cmd, args)
 
-    return tor_process
+    return tor_process, torrc_path
 
 def make_torrc(config):
     """
@@ -39,6 +39,7 @@ def make_torrc(config):
 
     :returns: **str** path to the new torrc
     """
+
     torrc_path = tempfile.mkstemp(prefix = "torrc-", text = True)[1]
 
 
@@ -61,3 +62,25 @@ def parse_bootstrap_msg(msg):
     bootstrap_match = bootstrap_line.search(msg)
     if bootstrap_match:
         return int(bootstrap_match.groups()[0])
+
+def parse_torrc(torrc):
+    """
+    Returns a dict with all the key value mappings in a torrc
+
+    :param str msg: path to torrc file
+
+    :returns: **dict** key value mappings of torrc
+    """
+
+    torrc_val = {}
+
+    with open(torrc) as torrc_fh:
+        for line in torrc_fh.readlines():
+            line = line.strip()
+            if line.startswith('#'):
+                continue
+            else:
+                key, val = line.split(' ')
+                torrc_val[key] = val
+
+    return torrc_val
